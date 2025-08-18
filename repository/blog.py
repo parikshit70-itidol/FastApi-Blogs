@@ -44,14 +44,29 @@ def update(id, blog: BlogCreate, db: Session):
 def get(id: int, db: Session):
     blog = db.query(Blog).filter(Blog.id == id).first()
     if not blog:
-        raise HTTPException(status_code=404, detail="Blogs not Found")
+        raise HTTPException(status_code=404, detail="Blog not found")
 
-    # Load comments and replies with authors
-    for comment in blog.comments:
-        _ = comment.user  # author for comment
-        for reply in comment.replies:
-            _ = reply.user  # author for reply
+    blog_dict = {
+        "title": blog.title,
+        "description": blog.description,
+        "author": blog.author.name if blog.author else None,
+        "comments": [
+            {
+                "description": c.description,
+                "author": c.author.name if c.author else None,
+                "replies": [
+                    {
+                        "id": r.id,
+                        "description": r.description,
+                        "author": r.author.name if r.author else None,
+                    }
+                    for r in c.replies if r.parent_id is not None and r.parent_id == c.id and r.blog_id == blog.id
+                ]
+            }
+            for c in blog.comments if c.parent_id is None
+        ]
+    }
 
-    return BlogWithCommentsAndReplies.model_validate(blog) 
- 
+    return BlogWithCommentsAndReplies.model_validate(blog_dict)
+
  

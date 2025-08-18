@@ -28,4 +28,3 @@ def get(id:int,db:Session):
     except Exception as e:
         db.rollback() 
         raise HTTPException(status_code=500, detail=f"Unable to Connect to Database: {str(e)}") 
-    
