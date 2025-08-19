@@ -9,7 +9,7 @@ from oauth2 import get_current_user
 
 router = APIRouter(tags=['Replies']) 
 
-@router.get("/reply/{comment_id}", response_model=CommentWithReplies)
+@router.get("/reply/{comment_id}", response_model= List[CommentWithReplies])
 def get_comment(comment_id: int, db: Session = Depends(get_db)):
-   return reply.get_reply(db,comment_id)   
+    return reply.get_reply(db, comment_id)
     

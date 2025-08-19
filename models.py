@@ -24,10 +24,10 @@ class Comment(Base):
     description = Column(String)
     blog_id = Column(Integer, ForeignKey('blog.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
-    parent_id = Column(Integer, ForeignKey("comment.id"), nullable=True)
-    author = relationship("User", back_populates="comments")
-    blog = relationship("Blog", back_populates="comments")
-    
-
-    
+    parent_id = Column(Integer, ForeignKey("comment.id"))
+    is_reply = Column(Boolean, default=False) 
+    blog = relationship("Blog", back_populates="comments")       
+    author = relationship("User", back_populates="comments")  
+    replies = relationship("Comment", backref=backref("parent", remote_side=[id]),cascade="all, delete-orphan",
+        lazy="selectin")
     

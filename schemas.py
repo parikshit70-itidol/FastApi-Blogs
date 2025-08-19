@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from typing import List, Optional
 
 class UserOut(BaseModel):
@@ -8,14 +8,7 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-class ReplyOut(BaseModel):
-    id: int
-    description: str
-    author: Optional[str] = None    
-    
 
-    class Config:
-        from_attributes = True
 
 
 class CommentCreate(BaseModel):
@@ -27,12 +20,14 @@ class CommentCreate(BaseModel):
 
 
 class CommentWithReplies(BaseModel):
-    
+    id: int
     description: str
-    author: Optional[str] = None    
+    author: Optional[str] = None
+    replies: List["CommentWithReplies"] = Field(default_factory=list)  # self-referencing
+
     class Config:
         from_attributes = True
-
+        arbitrary_types_allowed = True
 
 class BlogBase(BaseModel):
     title: str
@@ -49,7 +44,7 @@ class BlogDetails(BlogBase):
 
 
 class BlogWithCommentsAndReplies(BlogDetails):
-    author: Optional[str] = None    
+    author: str   
     comments: List[CommentWithReplies] = []
 
     class Config:
@@ -85,3 +80,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+
+CommentWithReplies.model_rebuild()
