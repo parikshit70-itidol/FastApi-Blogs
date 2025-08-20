@@ -4,31 +4,50 @@ import models
 from fastapi import HTTPException 
 
 
-
 # utils/reply.py
-def get_reply(db: Session, comment_id: int):
+def get_reply(db, comment_id: int):
     try:
-        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-        if not comment:
+        # Fetch all comments once 
+        comments = db.query(models.Comment).all()
+
+        if not comments:
+            raise HTTPException(status_code=404, detail="No comments found")
+
+        # Build dictionary: parent_id -> {child_id: child_object}
+        db_data = {}
+        for c in comments:
+            if c.parent_id not in db_data:
+                db_data[c.parent_id] = {}
+            # unique key per child = its id
+            db_data[c.parent_id][c.id] = c
+
+        # Find the root comment
+        root = next((c for c in comments if c.id == comment_id), None)
+        if not root:
             raise HTTPException(status_code=404, detail="Comment not found")
 
+        # Recursive function using db_data only
         def get_reply_utils(parent_id: int):
-            replie = db.query(models.Comment).filter(models.Comment.parent_id == parent_id).all()
-            print(f"Replies for comment_id {parent_id}: {replie}")
-            if not replie:
+            children = db_data.get(parent_id, {})
+            if not children:
                 return []
             replies = []
-            for rep in replie:
+            for rep in children.values():  # values() ensures no duplicate keys
                 replies.append({
                     "id": rep.id,
                     "description": rep.description,
                     "author": rep.author.name if rep.author else None,
-                    "replies": get_reply_utils(rep.id)  # Recursive
+                    "replies": get_reply_utils(rep.id)  # recursion
                 })
             return replies
 
-        # include parent + recursive children
-        return  get_reply_utils(comment.id)
-
+        # Start recursion from this comment id
+        return [{
+            "id": root.id,
+            "description": root.description,
+            "author": root.author.name if root.author else None,
+            "replies": get_reply_utils(root.id)
+        }]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve replies: {str(e)}")
+
